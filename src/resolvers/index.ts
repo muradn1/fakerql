@@ -1,8 +1,59 @@
 import * as scuid from 'scuid';
 
 import { generateAuthToken, getUserId } from '../utils';
+import * as faker from 'faker/locale/en';
+
 
 const DEFAULT_COUNT = 25;
+
+let users = new Array(DEFAULT_COUNT).fill(0).map(_ => ({
+  id: scuid(),
+  firstName: faker.name.firstName(),
+  lastName: faker.name.lastName(),
+  email: faker.internet.email(),
+  avatar: faker.image.avatar(),
+  children: new Array(2).fill(0).map(_ => ({
+    id: scuid(),
+    name: faker.name.firstName(),
+    age: Math.floor(Math.random() * (60 - 18 + 1)) + 18
+  }))
+}))
+
+class Child {
+  id: string;
+  parent: any;
+  name: string;
+  age: number;
+
+}
+
+const addChildrenToUser = (user, userInput) => {
+  const childrenInput = userInput.children;
+  const childrenArr = childrenInput.map(childInput => {
+    let child;
+
+    if (childInput.id !== undefined) {
+      child = user.children.find(child => child.id === childInput.id);
+    } else {
+      child = new Child();
+      child.id = scuid();
+      child.parent = user;
+    }
+
+    if (childInput.name !== undefined) {
+      child.name = childInput.name;
+    }
+
+    if (childInput.age !== undefined) {
+      child.age = childInput.age;
+    }
+
+    return child;
+  });
+
+  user.children = childrenArr;
+}
+
 
 export default {
   Query: {
@@ -20,22 +71,10 @@ export default {
     },
 
     allUsers(parent, { count = DEFAULT_COUNT }, { faker }) {
-      return new Array(count).fill(0).map(_ => ({
-        id: scuid(),
-        firstName: faker.name.firstName(),
-        lastName: faker.name.lastName(),
-        email: faker.internet.email(),
-        avatar: faker.image.avatar()
-      }));
+      return users;
     },
 
-    User: (parent, { id }, { faker }) => ({
-      id,
-      firstName: faker.name.firstName(),
-      lastName: faker.name.lastName(),
-      email: faker.internet.email(),
-      avatar: faker.image.avatar()
-    }),
+    User: (parent, { id }, { faker }) => (users.find(user => user.id === id)),
 
     allProducts: (parent, { count = DEFAULT_COUNT }, { faker }) => {
       return new Array(count).fill(0).map(_ => ({
@@ -101,6 +140,7 @@ export default {
   },
 
   Mutation: {
+
     register: async (
       parent,
       { email, password, expiresIn = '2d' },
@@ -127,18 +167,55 @@ export default {
       )
     }),
 
-    updateUser: (parent, { id, firstName, lastName, email, avatar }, ctx) => {
-      const userId = getUserId(ctx);
-      const { faker } = ctx;
+    updateUser: (parent, { userInput }, ctx) => {
+      let userToUpdate = users.find(user => user.id === userInput.id);
 
-      return {
-        id: userId,
-        firstName: firstName === undefined ? faker.name.firstName() : firstName,
-        lastName: lastName === undefined ? faker.name.lastName() : lastName,
-        email: email === undefined ? faker.internet.email() : email,
-        avatar: avatar === undefined ? faker.image.avatar() : avatar
-      };
+      if (userInput.firstName !== undefined) {
+        userToUpdate.firstName = userInput.firstName;
+      }
+      if (userInput.lastName !== undefined) {
+        userToUpdate.lastName = userInput.lastName;
+      }
+      if (userInput.email !== undefined) {
+        userToUpdate.email = userInput.email;
+      }
+      if (userInput.avatar !== undefined) {
+        userToUpdate.avatar = userInput.avatar;
+      }
+
+      if (userInput.children !== undefined) {
+        addChildrenToUser(userToUpdate, userInput);
+      }
+
+      return userToUpdate;
     },
+
+    createUser: (parent, { userInput }, ctx) => {
+      let userToCreate = {
+        id: scuid(),
+        firstName: userInput.firstName,
+        lastName: userInput.lastName,
+        email: userInput.email,
+        avatar: userInput.avatar,
+        children: []
+      }
+
+      if (userInput.children !== undefined) {
+        addChildrenToUser(userToCreate, userInput)
+      }
+
+
+
+      users.push(userToCreate);
+
+      return userToCreate;
+    },
+
+    deleteUser: (parent, { id }, ctx) => {
+      users = users.filter(user => user.id !== id);
+      return id;
+    },
+
 
     // No authentication for demo purposes
     createTodo: (parent, { title, completed }, { faker }) => {

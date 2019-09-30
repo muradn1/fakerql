@@ -6,8 +6,31 @@ type User {
   id: ID!
   firstName: String!
   lastName: String!
-  email: String!
+  email: String
   avatar: String
+  children: [Child]
+}
+
+input UserInput {
+  id: ID
+  firstName: String
+  lastName: String
+  email: String
+  avatar: String
+  children:[ChildInput]
+}
+
+type Child {
+  id: ID!
+  parent: User!
+  name: String
+  age: Int
+}
+
+input ChildInput{
+  id: ID
+  name: String
+  age: Int
 }
 
 type Product {
@@ -46,7 +69,9 @@ type Query {
 type Mutation {
   register(email: String!, password: String!, expiresIn: String): AuthPayload
   login(email: String!, password: String!, expiresIn: String): AuthPayload
-  updateUser(id: ID!, email: String, firstName: String, lastName: String): User
+  updateUser(userInput: UserInput): User
+  createUser(userInput: UserInput): User
+  deleteUser(id:ID!): ID
   createTodo(title: String!, completed: Boolean): Todo
 }
 

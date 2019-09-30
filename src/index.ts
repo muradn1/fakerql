@@ -1,13 +1,11 @@
 import { GraphQLServer, PubSub } from 'graphql-yoga';
 import { formatError } from 'apollo-errors';
-import * as jwt from 'express-jwt';
 import * as faker from 'faker/locale/en';
 import * as compression from 'compression';
 
 import resolvers from './resolvers';
 import defaultPlaygroundQuery from './initQuery'
 
-const { JWT_SECRET } = process.env;
 
 const pubsub = new PubSub();
 const server = new GraphQLServer({
@@ -15,7 +13,6 @@ const server = new GraphQLServer({
   resolvers,
   context: req => ({
     ...req,
-    jwtSecret: JWT_SECRET,
     faker,
     pubsub
   })
@@ -23,13 +20,6 @@ const server = new GraphQLServer({
 
 server.express.disable('x-powered-by');
 
-server.express.use(
-  '/graphql',
-  jwt({
-    secret: JWT_SECRET,
-    credentialsRequired: false
-  })
-);
 
 server.express.use(compression());
 
