@@ -54,6 +54,12 @@ type Post {
   author: User!
 }
 
+type UsersBatchObject {
+  usersCreated: [User]!,
+  usersUpdated: [User]!,
+  usersDeleted: [String]!
+}
+
 type Query {
   me: User
   allUsers(count: Int): [User]
@@ -73,6 +79,7 @@ type Mutation {
   createUser(userInput: UserInput): User
   deleteUser(id:ID!): ID
   createTodo(title: String!, completed: Boolean): Todo
+  users(userInputs: [UserInput]): UsersBatchObject
 }
 
 type Subscription {
