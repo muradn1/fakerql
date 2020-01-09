@@ -8,6 +8,7 @@ type User {
   lastName: String!
   email: String
   avatar: String
+  certifications: [String]
   children: [Child]
 }
 
@@ -17,6 +18,7 @@ input UserInput {
   lastName: String
   email: String
   avatar: String
+  certifications: [String]
   children:[ChildInput]
 }
 
@@ -79,7 +81,7 @@ type Mutation {
   createUser(userInput: UserInput): User
   deleteUser(id:ID!): ID
   createTodo(title: String!, completed: Boolean): Todo
-  users(userInputs: [UserInput]): UsersBatchObject
+  updateUsers(userInputs: [UserInput]): UsersBatchObject
 }
 
 type Subscription {
