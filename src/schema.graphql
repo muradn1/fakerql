@@ -56,10 +56,10 @@ type Post {
   author: User!
 }
 
-type UsersBatchObject {
+type UsersSyncResult {
   usersCreated: [User]!,
   usersUpdated: [User]!,
-  usersDeleted: [String]!
+  deletedUsersIds: [ID]!
 }
 
 type Query {
@@ -77,11 +77,11 @@ type Query {
 type Mutation {
   register(email: String!, password: String!, expiresIn: String): AuthPayload
   login(email: String!, password: String!, expiresIn: String): AuthPayload
-  updateUser(userInput: UserInput): User
-  createUser(userInput: UserInput): User
+  updateUser(user: UserInput): User
+  createUser(user: UserInput): User
   deleteUser(id:ID!): ID
   createTodo(title: String!, completed: Boolean): Todo
-  updateUsers(userInputs: [UserInput]): UsersBatchObject
+  syncUsers(users: [UserInput]): UsersSyncResult
 }
 
 type Subscription {

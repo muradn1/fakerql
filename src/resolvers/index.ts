@@ -6,27 +6,44 @@ import * as faker from 'faker/locale/en';
 
 const DEFAULT_COUNT = 25;
 
-let users = new Array(DEFAULT_COUNT).fill(0).map(_ => ({
-  id: scuid(),
-  firstName: faker.name.firstName(),
-  lastName: faker.name.lastName(),
-  email: faker.internet.email(),
-  avatar: faker.image.avatar(),
-  certifications: new Array(),
-  children: new Array(2).fill(0).map(_ => ({
-    id: scuid(),
-    name: faker.name.firstName(),
-    age: Math.floor(Math.random() * (60 - 18 + 1)) + 18
-  }))
-}))
+class User {
+  public id: string = scuid();
+  public firstName: string;
+  public lastName: string;
+  public email: string;
+  public avatar: string;
+  public certifications: string[] = [];
+  public children: Child[] = [];
+}
 
 class Child {
-  id: string;
-  parent: any;
-  name: string;
-  age: number;
-
+  public id: string = scuid();
+  public parent: User;
+  public name: string;
+  public age: number;
 }
+
+let users = new Array(DEFAULT_COUNT).fill(0).map(_ => {
+  let newUser = new User();
+
+  newUser.firstName = faker.name.firstName();
+  newUser.lastName = faker.name.lastName();
+  newUser.email = faker.internet.email();
+  newUser.avatar = faker.image.avatar();
+  newUser.certifications = new Array(3).fill(0).map(_ => (faker.lorem.word()));
+
+  newUser.children = new Array(2).fill(0).map(_ => {
+    let newChild = new Child();
+
+    newChild.parent = newUser;
+    newChild.name = faker.name.firstName();
+    newChild.age = Math.floor(Math.random() * (60 - 18 + 1)) + 18;
+
+    return newChild;
+  });
+
+  return newUser;
+})
 
 const addChildrenToUser = (user, userInput) => {
   const childrenInput = userInput.children;
@@ -37,7 +54,6 @@ const addChildrenToUser = (user, userInput) => {
       child = user.children.find(child => child.id === childInput.id);
     } else {
       child = new Child();
-      child.id = scuid();
       child.parent = user;
     }
 
@@ -56,43 +72,86 @@ const addChildrenToUser = (user, userInput) => {
 }
 
 const createUser = (userInput) => {
-  if (!(userInput.id))
-    userInput.id = scuid();
-  const newUser = _.cloneDeep(userInput, true)
-  users.push(newUser);
 
-  return newUser;
+  let userToCreate = new User();
+
+  if (userInput.id !== undefined) {
+    userToCreate.id = userInput.id;
+  }
+
+  userSetFeilds(userToCreate, userInput);
+
+  users.push(userToCreate);
+
+  return userToCreate;
 }
 
 const updateUser = (userInput) => {
   let userToUpdate = users.find(user => user.id === userInput.id);
 
-  if (userInput.firstName !== undefined) {
-    userToUpdate.firstName = userInput.firstName;
-  }
-  if (userInput.lastName !== undefined) {
-    userToUpdate.lastName = userInput.lastName;
-  }
-  if (userInput.email !== undefined) {
-    userToUpdate.email = userInput.email;
-  }
-  if (userInput.avatar !== undefined) {
-    userToUpdate.avatar = userInput.avatar;
-  }
-  if (userInput.certifications !== undefined) {
-    userToUpdate.certifications = userInput.certifications;
-  }
-  if (userInput.children !== undefined) {
-    addChildrenToUser(userToUpdate, userInput);
-  }
+  userSetFeilds(userToUpdate, userInput);
 
   return userToUpdate;
+}
+
+const userSetFeilds = (userToSet, userInput) => {
+
+  if (userInput.firstName !== undefined) {
+    userToSet.firstName = userInput.firstName;
+  }
+  if (userInput.lastName !== undefined) {
+    userToSet.lastName = userInput.lastName;
+  }
+  if (userInput.email !== undefined) {
+    userToSet.email = userInput.email;
+  }
+  if (userInput.avatar !== undefined) {
+    userToSet.avatar = userInput.avatar;
+  }
+  if (userInput.certifications !== undefined) {
+    userToSet.certifications = userInput.certifications;
+  }
+  if (userInput.children !== undefined) {
+    addChildrenToUser(userToSet, userInput);
+  }
+
 }
 
 const deleteUser = (id) => {
   users = users.filter(user => user.id !== id);
 
   return id;
+}
+
+const syncUsers = (usersInputs) => {
+  // Fetch all user ids to identify which mutation should be used on the users input
+  const existingUsersIds = users.map(u => u.id);
+
+  const usersUpdated = [];
+  const usersCreated = [];
+  const deletedUsersIds = [];
+
+  usersInputs.forEach(userInput => {
+    if (existingUsersIds.includes(userInput.id)) {
+      usersUpdated.push(updateUser(userInput));
+    } else {
+      usersCreated.push(createUser(userInput));
+    }
+  });
+
+  const survivingUsersIds = [...usersCreated.map(user => user.id), ...usersUpdated.map(user => user.id)];
+  const usersIdsToDelete = existingUsersIds.filter(exiUserId => !survivingUsersIds.includes(exiUserId));
+
+  usersIdsToDelete.forEach(userId => {
+    deletedUsersIds.push(deleteUser(userId))
+  })
+
+
+  return {
+    usersCreated,
+    usersUpdated,
+    deletedUsersIds
+  }
 }
 
 export default {
@@ -207,11 +266,11 @@ export default {
       )
     }),
 
-    updateUser: (parent, { userInput }, ctx) => {
+    updateUser: (parent, { user: userInput }, ctx) => {
       return updateUser(userInput);
     },
 
-    createUser: (parent, { userInput }, ctx) => {
+    createUser: (parent, { user: userInput }, ctx) => {
       return createUser(userInput);
     },
 
@@ -219,46 +278,8 @@ export default {
       return deleteUser(id)
     },
 
-    updateUsers: (parent, { userInputs }: any, ctx) => {
-      // Fetch all user ids to identify which mutation should be used on the users input
-      const existingIds = users.map(u => u.id);
-      const usersToCreate = [];
-      const usersToUpdate = [];
-      const usersToDelete = [];
-      userInputs.forEach(userInput => {
-        if (existingIds.includes(userInput.id)) {
-          usersToUpdate.push(userInput);
-        } else {
-          usersToCreate.push(userInput);
-        }
-      });
-
-      const newUsersListIds = [...usersToCreate.map(user => user.id), ...usersToUpdate.map(user => user.id)];
-
-      // to indicate the deleted ids
-      users.forEach(user => {
-        if (!newUsersListIds.includes(user.id)) {
-          usersToDelete.push(user.id);
-        }
-      })
-
-      // Mutations
-      usersToCreate.forEach(userToCreate => {
-        createUser(userToCreate);
-      })
-
-      usersToUpdate.forEach(userToUpdate => {
-        updateUser(userToUpdate);
-      })
-
-      usersToDelete.forEach(userToDelete => {
-        deleteUser(userToDelete)
-      })
-      return {
-        usersCreated: usersToCreate,
-        usersUpdated: usersToUpdate,
-        usersDeleted: usersToDelete
-      }
+    syncUsers: (parent, { users: usersInputs }: any, ctx) => {
+      return syncUsers(usersInputs);
     },
 
     // No authentication for demo purposes
