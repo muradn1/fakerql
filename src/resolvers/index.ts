@@ -1,5 +1,4 @@
 import * as scuid from 'scuid';
-import * as _ from 'lodash';
 import { generateAuthToken, getUserId } from '../utils';
 import * as faker from 'faker/locale/en';
 
@@ -12,6 +11,7 @@ class User {
   public lastName: string;
   public email: string;
   public avatar: string;
+  public address: Address;
   public certifications: string[] = [];
   public children: Child[] = [];
 }
@@ -23,6 +23,11 @@ class Child {
   public age: number;
 }
 
+class Address{
+  public city: string;
+  public street: string;
+}
+
 let users = new Array(DEFAULT_COUNT).fill(0).map(_ => {
   let newUser = new User();
 
@@ -30,6 +35,12 @@ let users = new Array(DEFAULT_COUNT).fill(0).map(_ => {
   newUser.lastName = faker.name.lastName();
   newUser.email = faker.internet.email();
   newUser.avatar = faker.image.avatar();
+
+  let newAddress = new Address();
+  newAddress.city = faker.address.city();
+  newAddress.street = faker.address.streetName();
+  newUser.address = newAddress;
+
   newUser.certifications = new Array(3).fill(0).map(_ => (faker.lorem.word()));
 
   newUser.children = new Array(2).fill(0).map(_ => {
@@ -107,6 +118,17 @@ const userSetFeilds = (userToSet, userInput) => {
   }
   if (userInput.avatar !== undefined) {
     userToSet.avatar = userInput.avatar;
+  }
+  if (userInput.address !== undefined) {
+    userToSet.address = userToSet.address ? userToSet.address : {};
+    
+    if(userInput.address.street !== undefined){
+      userToSet.address.street = userInput.address.street;
+    }
+
+    if(userInput.address.city !== undefined){
+      userToSet.address.city = userInput.address.city;
+    }
   }
   if (userInput.certifications !== undefined) {
     userToSet.certifications = userInput.certifications;

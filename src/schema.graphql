@@ -8,6 +8,7 @@ type User {
   lastName: String!
   email: String
   avatar: String
+  address: Address
   certifications: [String]
   children: [Child]
 }
@@ -18,21 +19,32 @@ input UserInput {
   lastName: String
   email: String
   avatar: String
+  address: AddressInput
   certifications: [String]
   children:[ChildInput]
 }
 
 type Child {
-  id: ID!
-  parent: User!
+  id: ID
+  parent: User
   name: String
   age: Int
+}
+
+type Address{
+  city: String
+  street: String
 }
 
 input ChildInput{
   id: ID
   name: String
   age: Int
+}
+
+input AddressInput{
+  city: String
+  street: String
 }
 
 type Product {
